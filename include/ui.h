@@ -25,4 +25,7 @@ int  ui_read_int(const char *prompt, int *out_value);
 int  ui_read_double(const char *prompt, double *out_value);
 int  ui_read_string(const char *prompt, char *buffer, size_t size);
 
+/* Secure masked input (for PIN) */
+int  ui_read_masked(const char *prompt, char *buffer, size_t size);
+
 #endif /* UI_H */

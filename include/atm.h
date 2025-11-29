@@ -17,6 +17,7 @@
 typedef struct {
     AccountStore store;
     char         db_path[MAX_DB_PATH_LEN];
+    int          use_json; /* 0 = CSV, non-zero = JSON */
 } AtmContext;
 
 AtmStatus atm_init(AtmContext *ctx, const char *db_path);

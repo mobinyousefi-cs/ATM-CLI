@@ -6,17 +6,20 @@
  *
  * Description:
  *   Entry point for the ATM CLI application.
+ *
  *   Usage:
  *     ./atm_cli [accounts_db_file]
  *
  *   If no DB file is provided, "accounts.db" in the current directory is used.
+ *   The format is auto-detected:
+ *     - *.db or *.csv → CSV format
+ *     - *.json        → JSON format
  */
 
 #include "atm.h"
 #include "ui.h"
 
 #include <stdio.h>
-#include <string.h>
 
 int main(int argc, char *argv[]) {
     const char *default_db = "accounts.db";

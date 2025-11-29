@@ -16,7 +16,7 @@
 
 #define MAX_ACCOUNT_ID_LEN  16
 #define MAX_NAME_LEN        64
-#define MAX_PIN_LEN         12
+#define MAX_PIN_LEN         32
 #define MAX_LINE_LEN        256
 #define MAX_DB_PATH_LEN     260
 

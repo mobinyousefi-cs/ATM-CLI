@@ -113,7 +113,7 @@ AtmStatus account_store_load(AccountStore *store, const char *path) {
 
         if (store->size == store->capacity) {
             size_t new_cap = (store->capacity == 0) ? 8 : store->capacity * 2;
-            AtmStatus st = account_store_reserve(store, new_cap);
+            AtmStatus st   = account_store_reserve(store, new_cap);
             if (st != ATM_OK) {
                 fclose(f);
                 return st;

@@ -14,7 +14,8 @@ SRCS := $(SRC_DIR)/main.c \
         $(SRC_DIR)/atm.c  \
         $(SRC_DIR)/account.c \
         $(SRC_DIR)/auth.c \
-        $(SRC_DIR)/ui.c
+        $(SRC_DIR)/ui.c \
+        $(SRC_DIR)/db_json.c
 
 OBJS := $(SRCS:.c=.o)
 
@@ -31,14 +32,7 @@ release: clean all
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-$(SRC_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/%.h $(INC_DIR)/common.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-# Special rules for main.c (no corresponding header) and ui.c (depends on ui.h)
-$(SRC_DIR)/main.o: $(SRC_DIR)/main.c $(INC_DIR)/atm.h $(INC_DIR)/common.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(SRC_DIR)/ui.o: $(SRC_DIR)/ui.c $(INC_DIR)/ui.h $(INC_DIR)/common.h
+%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:

@@ -33,7 +33,7 @@ typedef struct {
 AtmStatus account_store_init(AccountStore *store);
 void      account_store_free(AccountStore *store);
 
-/* Persistence */
+/* Persistence (CSV) */
 AtmStatus account_store_load(AccountStore *store, const char *path);
 AtmStatus account_store_save(const AccountStore *store, const char *path);
 

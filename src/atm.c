@@ -11,12 +11,14 @@
 #include "atm.h"
 #include "auth.h"
 #include "ui.h"
+#include "db_json.h"
 
 #include <stdio.h>
 #include <string.h>
 
 static void atm_print_status_from_code(AtmStatus status);
 static void atm_session(AtmContext *ctx, Account *account);
+static AtmStatus atm_persist(AtmContext *ctx);
 
 AtmStatus atm_init(AtmContext *ctx, const char *db_path) {
     if (!ctx || !db_path) return ATM_ERR_INTERNAL;
@@ -29,12 +31,20 @@ AtmStatus atm_init(AtmContext *ctx, const char *db_path) {
     strncpy(ctx->db_path, db_path, MAX_DB_PATH_LEN - 1);
     ctx->db_path[MAX_DB_PATH_LEN - 1] = '\0';
 
-    st = account_store_load(&ctx->store, ctx->db_path);
-    if (st != ATM_OK) {
-        return st;
+    /* Detect format by extension */
+    ctx->use_json = 0;
+    const char *ext = strrchr(ctx->db_path, '.');
+    if (ext && strcmp(ext, ".json") == 0) {
+        ctx->use_json = 1;
     }
 
-    return ATM_OK;
+    if (ctx->use_json) {
+        st = account_store_load_json(&ctx->store, ctx->db_path);
+    } else {
+        st = account_store_load(&ctx->store, ctx->db_path);
+    }
+
+    return st;
 }
 
 void atm_shutdown(AtmContext *ctx) {
@@ -46,7 +56,9 @@ void atm_run(AtmContext *ctx) {
     if (!ctx) return;
 
     ui_print_banner();
-    printf("Database file: %s\n", ctx->db_path);
+    printf("Database file: %s (%s)\n",
+           ctx->db_path,
+           ctx->use_json ? "JSON" : "CSV");
     ui_print_line();
 
     char account_id[MAX_ACCOUNT_ID_LEN];
@@ -75,7 +87,7 @@ void atm_run(AtmContext *ctx) {
             continue;
         }
 
-        if (!ui_read_string("Enter PIN: ", pin, sizeof(pin))) {
+        if (!ui_read_masked("Enter PIN: ", pin, sizeof(pin))) {
             ui_print_error("Failed to read PIN.");
             continue;
         }
@@ -83,16 +95,14 @@ void atm_run(AtmContext *ctx) {
         AtmStatus auth_status = auth_verify_login(acc, pin);
         if (auth_status == ATM_OK) {
             ui_print_status("Authentication successful. Welcome!");
-            /* Persist auth-related state (failed_attempts reset, etc.) */
-            AtmStatus st = account_store_save(&ctx->store, ctx->db_path);
+            AtmStatus st = atm_persist(ctx); /* failed_attempts reset */
             if (st != ATM_OK) {
                 atm_print_status_from_code(st);
             }
             atm_session(ctx, acc);
         } else {
             atm_print_status_from_code(auth_status);
-            /* Save in case account becomes locked */
-            AtmStatus st = account_store_save(&ctx->store, ctx->db_path);
+            AtmStatus st = atm_persist(ctx); /* might lock account */
             if (st != ATM_OK) {
                 atm_print_status_from_code(st);
             }
@@ -103,7 +113,7 @@ void atm_run(AtmContext *ctx) {
 static void atm_session(AtmContext *ctx, Account *account) {
     if (!ctx || !account) return;
 
-    int choice = 0;
+    int    choice = 0;
     double amount = 0.0;
 
     for (;;) {
@@ -142,8 +152,7 @@ static void atm_session(AtmContext *ctx, Account *account) {
                 ui_print_error("Unexpected error during deposit.");
                 break;
             }
-            /* Persist balance */
-            atm_print_status_from_code(account_store_save(&ctx->store, ctx->db_path));
+            atm_print_status_from_code(atm_persist(ctx));
             break;
 
         case 3:
@@ -165,8 +174,7 @@ static void atm_session(AtmContext *ctx, Account *account) {
                 ui_print_error("Unexpected error during withdrawal.");
                 break;
             }
-            /* Persist balance */
-            atm_print_status_from_code(account_store_save(&ctx->store, ctx->db_path));
+            atm_print_status_from_code(atm_persist(ctx));
             break;
 
         case 4:
@@ -178,6 +186,14 @@ static void atm_session(AtmContext *ctx, Account *account) {
             break;
         }
     }
+}
+
+static AtmStatus atm_persist(AtmContext *ctx) {
+    if (!ctx) return ATM_ERR_INTERNAL;
+    if (ctx->use_json) {
+        return account_store_save_json(&ctx->store, ctx->db_path);
+    }
+    return account_store_save(&ctx->store, ctx->db_path);
 }
 
 static void atm_print_status_from_code(AtmStatus status) {
